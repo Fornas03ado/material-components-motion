@@ -21,11 +21,15 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.activity.OnBackPressedCallback
+import androidx.core.view.doOnPreDraw
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.observe
+import androidx.navigation.fragment.FragmentNavigatorExtras
 import androidx.navigation.fragment.findNavController
 import androidx.navigation.fragment.navArgs
 import androidx.recyclerview.widget.ItemTouchHelper
+import com.google.android.material.transition.MaterialElevationScale
+import com.google.android.material.transition.MaterialFadeThrough
 import com.materialstudies.reply.R
 import com.materialstudies.reply.data.Email
 import com.materialstudies.reply.data.EmailStore
@@ -58,7 +62,9 @@ class HomeFragment : Fragment(), EmailAdapter.EmailAdapterListener {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // TODO: Set up MaterialFadeThrough enterTransition.
+        enterTransition = MaterialFadeThrough().apply {
+            duration = resources.getInteger(R.integer.reply_motion_duration_large).toLong()
+        }
     }
 
     override fun onCreateView(
@@ -72,7 +78,12 @@ class HomeFragment : Fragment(), EmailAdapter.EmailAdapterListener {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        // TODO: Set up postponed enter transition.
+
+        /* If an enter transition points to a RecyclerView element that has not been created
+        * yet, it will be skipped. To prevent that, we only need to postpone the enter transition
+        * and perform it on pre draw */
+        postponeEnterTransition()
+        view.doOnPreDraw { startPostponedEnterTransition() }
 
         // Only enable the on back callback if this home fragment is a mailbox other than Inbox.
         // This is to make sure we always navigate back to Inbox before exiting the app.
@@ -95,9 +106,26 @@ class HomeFragment : Fragment(), EmailAdapter.EmailAdapterListener {
     }
 
     override fun onEmailClicked(cardView: View, email: Email) {
-        // TODO: Set up MaterialElevationScale transition as exit and reenter transitions.
+        /* Keep the screen populated with the list while waiting
+        * for the EmailFragment enter transition */
+        exitTransition = MaterialElevationScale(false).apply {
+            duration = resources.getInteger(R.integer.reply_motion_duration_large).toLong()
+        }
+        reenterTransition = MaterialElevationScale(true).apply {
+            duration = resources.getInteger(R.integer.reply_motion_duration_large).toLong()
+        }
+        /* In order to ensure that the MaterialElevationScale transition is applied
+        to the home screen as a whole, instead of to each of the individual views in
+        the hierarchy, mark the RecyclerView in fragment_home.xml as a transition group */
+
+        /*
+        * Bind the clicked view with the EmailFragment transition name and send it
+        * through navigation components
+        * */
+        val emailCardDetailTransitionName = getString(R.string.email_card_detail_transition_name)
+        val extras = FragmentNavigatorExtras(cardView to emailCardDetailTransitionName)
         val directions = HomeFragmentDirections.actionHomeFragmentToEmailFragment(email.id)
-        findNavController().navigate(directions)
+        findNavController().navigate(directions, extras)
     }
 
     override fun onEmailLongPressed(email: Email): Boolean {

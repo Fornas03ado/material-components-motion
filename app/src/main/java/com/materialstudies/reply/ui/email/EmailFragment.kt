@@ -16,6 +16,8 @@
 
 package com.materialstudies.reply.ui.email
 
+import android.content.res.Resources
+import android.graphics.Color
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -24,8 +26,11 @@ import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 import androidx.navigation.fragment.navArgs
 import androidx.recyclerview.widget.GridLayoutManager
+import com.google.android.material.transition.MaterialContainerTransform
+import com.materialstudies.reply.R
 import com.materialstudies.reply.data.EmailStore
 import com.materialstudies.reply.databinding.FragmentEmailBinding
+import com.materialstudies.reply.util.themeColor
 import kotlin.LazyThreadSafetyMode.NONE
 
 private const val MAX_GRID_SPANS = 3
@@ -44,7 +49,18 @@ class EmailFragment : Fragment() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // TODO: Set up MaterialContainerTransform transition as sharedElementEnterTransition.
+        /*
+        * Only the sharedElementEnterTransition is being set, as opposed to the
+        * sharedElementReturnTransition. By default, the Android Transition system will
+        * automatically reverse the enter transition when navigating back, if no return
+        * transition is set.
+        * */
+        sharedElementEnterTransition = MaterialContainerTransform().apply {
+            drawingViewId = R.id.nav_host_fragment
+            duration = resources.getInteger(R.integer.reply_motion_duration_large).toLong()
+            scrimColor = Color.TRANSPARENT
+            setAllContainerColors(requireContext().themeColor(R.attr.colorSurface))
+        }
     }
 
     override fun onCreateView(
